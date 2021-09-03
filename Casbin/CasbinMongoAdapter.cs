@@ -60,7 +60,7 @@ namespace Geex.Common.Authorization.Casbin
                                                     && (fieldIndex <= 1 && 1 < fieldIndex + num && x.V1 == line.V1)
                                                     && (fieldIndex <= 2 && 2 < fieldIndex + num && x.V2 == line.V2)
                                                     && (fieldIndex <= 3 && 3 < fieldIndex + num && x.V3 == line.V3)
-                                                    && (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4)).DeleteAllAsync();
+                                                    && (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4)).DeleteAsync();
         }
 
         public async Task SavePolicyAsync(Model model)
