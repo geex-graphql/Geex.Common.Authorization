@@ -56,11 +56,13 @@ namespace Geex.Common.Authorization.Casbin
                 line.V4 = fieldValues[4 - fieldIndex];
             if (fieldIndex <= 5 && 5 < fieldIndex + num)
                 line.V5 = fieldValues[5 - fieldIndex];
-            await RuleCollection.Invoke().AsQueryable().Where(x => (fieldIndex <= 0 && 0 < fieldIndex + num && x.V0 == line.V0)
-                                                    && (fieldIndex <= 1 && 1 < fieldIndex + num && x.V1 == line.V1)
-                                                    && (fieldIndex <= 2 && 2 < fieldIndex + num && x.V2 == line.V2)
-                                                    && (fieldIndex <= 3 && 3 < fieldIndex + num && x.V3 == line.V3)
-                                                    && (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4)).DeleteAsync();
+            var casbinRules = RuleCollection.Invoke().AsQueryable().Where(x => (fieldIndex <= 0 && 0 < fieldIndex + num && x.V0 == line.V0)
+                                                                               || (fieldIndex <= 1 && 1 < fieldIndex + num && x.V1 == line.V1)
+                                                                               || (fieldIndex <= 2 && 2 < fieldIndex + num && x.V2 == line.V2)
+                                                                               || (fieldIndex <= 3 && 3 < fieldIndex + num && x.V3 == line.V3)
+                                                                               || (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4)).ToList();
+            await casbinRules
+                .DeleteAsync();
         }
 
         public async Task SavePolicyAsync(Model model)

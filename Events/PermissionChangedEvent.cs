@@ -1,10 +1,11 @@
-﻿using Geex.Common.Authorization.Abstraction;
+﻿
+using MediatR;
 
 namespace Geex.Common.Authorization.Events
 {
-    public record PermissionChangedEvent(string SubId, AppPermission[] Permissions)
+    public record PermissionChangedEvent(string SubId, string[] Permissions) : INotification
     {
         public string SubId { get; init; } = SubId;
-        public AppPermission[] Permissions { get; init; } = Permissions;
+        public string[] Permissions { get; init; } = Permissions;
     }
 }

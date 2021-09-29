@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Linq;
+
+using Microsoft.AspNetCore.Authorization;
 
 namespace Geex.Common.Authorization.Casbin
 {
@@ -6,17 +8,15 @@ namespace Geex.Common.Authorization.Casbin
     {
         public string Obj { get; }
         public string Act { get; }
-
-        public CasbinRequirement(string obj, string act)
-        {
-            Obj = obj;
-            Act = act;
-        }
+        public string Fields { get; set; }
 
         public CasbinRequirement(string policyName)
         {
-            this.Act = policyName;
-            this.Obj = "*";
+            var split = policyName.Split('.');
+            this.Obj = split[0];
+            this.Act = split[1];
+            this.Fields = split.ElementAtOrDefault(2) ?? "_";
         }
+
     }
 }
