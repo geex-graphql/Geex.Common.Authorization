@@ -13,7 +13,6 @@ namespace Geex.Common.Authorization.Casbin
             // custom provider which can return authorization policies for given
             // policy names (instead of using the default policy provider)
             services.AddSingleton(x => new CasbinMongoAdapter(() => DB.Collection<CasbinRule>()));
-            services.AddSingleton<Enforcer, RbacEnforcer>();
             services.AddSingleton<RbacEnforcer>();
             services.AddAuthorization();
             services.AddSingleton<IAuthorizationPolicyProvider, CasbinAuthorizationPolicyProvider>();

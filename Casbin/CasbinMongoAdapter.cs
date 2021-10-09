@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using MongoDB.Driver;
 using MongoDB.Entities;
+
 using NetCasbin.Model;
 using NetCasbin.Persist;
 
@@ -56,11 +58,13 @@ namespace Geex.Common.Authorization.Casbin
                 line.V4 = fieldValues[4 - fieldIndex];
             if (fieldIndex <= 5 && 5 < fieldIndex + num)
                 line.V5 = fieldValues[5 - fieldIndex];
-            var casbinRules = RuleCollection.Invoke().AsQueryable().Where(x => (fieldIndex <= 0 && 0 < fieldIndex + num && x.V0 == line.V0)
-                                                                               || (fieldIndex <= 1 && 1 < fieldIndex + num && x.V1 == line.V1)
-                                                                               || (fieldIndex <= 2 && 2 < fieldIndex + num && x.V2 == line.V2)
-                                                                               || (fieldIndex <= 3 && 3 < fieldIndex + num && x.V3 == line.V3)
-                                                                               || (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4)).ToList();
+            var casbinRules = RuleCollection.Invoke().AsQueryable().Where(x =>
+                ((fieldIndex <= 0 && 0 < fieldIndex + num && x.V0 == line.V0)
+                 || (fieldIndex <= 1 && 1 < fieldIndex + num && x.V1 == line.V1)
+                 || (fieldIndex <= 2 && 2 < fieldIndex + num && x.V2 == line.V2)
+                 || (fieldIndex <= 3 && 3 < fieldIndex + num && x.V3 == line.V3)
+                 || (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4))
+                && x.PType == ptype).ToList();
             await casbinRules
                 .DeleteAsync();
         }

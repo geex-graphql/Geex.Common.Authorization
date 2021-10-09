@@ -37,6 +37,7 @@ namespace Geex.Common.Authorization.Casbin
     {
         public RbacEnforcer(CasbinMongoAdapter adapter) : base(Model, adapter)
         {
+            this.autoSave = true;
             this.AddFunction("fieldMatch", new FieldsSelectFunc());
         }
         /// <summary>
@@ -174,20 +175,13 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) 
             public string Group { get; }
         }
 
-        public void SetRolesForUser(string userId, List<string> roles)
+        public async Task SetRolesForUser(string userId, List<string> roles)
         {
-            var originRole = this.GetRolesForUser(userId);
-            var newRoles = roles.Except(originRole);
-            var removedRoles = originRole.Except(roles);
-            foreach (string newRole in newRoles)
+            await this.DeleteRolesForUserAsync(userId);
+            foreach (var newRole in roles)
             {
-                this.AddRoleForUser(userId, newRole);
+                await this.AddRoleForUserAsync(userId, newRole);
             }
-            foreach (string removedRole in removedRoles)
-            {
-                this.DeleteRoleForUser(userId, removedRole);
-            }
-
         }
 
         public async Task SetPermissionsAsync(string subId, params string[] permissions)
