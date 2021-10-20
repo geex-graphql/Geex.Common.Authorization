@@ -31,7 +31,7 @@ namespace Geex.Common.Authorization.Casbin
         private static readonly Regex fieldMatchRegex = new Regex(@"(?<!\w)_(?!\w)");
 
 
-        protected override Delegate GetFunc() => new Func<string, string, bool>((r, p) => r == "_" || p == "*" || fieldMatchRegex.IsMatch(p.Replace(r, "_")));
+        protected override Delegate GetFunc() => new Func<string, string, bool>((r, p) => r.IsNullOrEmpty() || fieldMatchRegex.IsMatch(p.Replace(r, "_")));
     }
     public class RbacEnforcer : Enforcer
     {
@@ -71,7 +71,7 @@ g2 = _, _
 e = some(where (p.eft == allow))
 
 [matchers]
-m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) && (p.act == ""*"" || r.act == p.act) && fieldMatch(r.fields, p.fields)
+m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) && (r.act == p.act) && fieldMatch(r.fields, p.fields)
 ");
 
 
@@ -138,7 +138,7 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) 
             return policies.Select(x => new PolicyItem(x)).ToList();
         }
 
-        public bool Enforce(string sub, string obj, string act = "*", string fields = "*")
+        public bool Enforce(string sub, string obj, string act = "", string fields = "")
         {
             if (sub == "000000000000000000000001")
             {
@@ -147,7 +147,7 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) 
             return base.Enforce(sub, obj, act, fields);
         }
 
-        public async Task<bool> EnforceAsync(string sub, string obj, string act = "*", string fields = "*")
+        public async Task<bool> EnforceAsync(string sub, string obj, string act = "", string fields = "")
         {
             return this.Enforce(sub, obj, act, fields);
         }
@@ -187,10 +187,13 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) 
         public async Task SetPermissionsAsync(string subId, params string[] permissions)
         {
             await this.DeletePermissionsForUserAsync(subId);
+            var queryPermissions = permissions.Where(x => x.StartsWith("query"));
+            var otherPermissions = permissions.Except(queryPermissions).ToArray();
+            permissions = otherPermissions.Concat(queryPermissions.GroupBy(x => string.Join("_", x.Split('_').Take(2)), x => x).Select(x => x.Key + "_" + string.Join("|", x.Select(y => y.Split('_').Last())))).ToArray();
             foreach (var permission in permissions)
             {
                 await this.AddPermissionForUserAsync(subId,
-                permission.Split('.').Pad(3).Select(x => x ?? "*").ToList());
+                permission.Split('_').Pad(3).Select(x => x ?? "").ToList());
             }
             await ServiceLocator.Current.GetService<IMediator>().Publish(new PermissionChangedEvent(subId, permissions));
         }

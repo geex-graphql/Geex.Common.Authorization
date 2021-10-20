@@ -29,7 +29,7 @@ namespace Geex.Common.Authorization.Casbin
         {
             var obj = requirement.Obj ?? "*"; // the resource that is going to be accessed.
             var act = requirement.Act ?? "*"; // the operation that the user performs on the resource.
-            var fields = requirement.Fields ?? "_"; // the fields that the user is going to retrieve from the resource.
+            var fields = requirement.Fields ?? "*"; // the fields that the user is going to retrieve from the resource.
             if (await _enforcer.EnforceAsync(context.User.FindUserId(), obj, act, fields))
             {
                 // permit alice to read data1

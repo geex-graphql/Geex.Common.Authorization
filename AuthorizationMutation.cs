@@ -14,7 +14,7 @@ namespace Geex.Common.Authorization
             [Service] RbacEnforcer enforcer,
             AuthorizeInput input)
         {
-            await enforcer.SetPermissionsAsync(input.Target.ToString(), input.AllowedPermissions.ToArray());
+            await enforcer.SetPermissionsAsync(input.Target.ToString(), input.AllowedPermissions.Select(x=>x.Value).ToArray());
             return true;
         }
     }
