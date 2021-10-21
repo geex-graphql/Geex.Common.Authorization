@@ -31,7 +31,8 @@ namespace Geex.Common.Authorization.Casbin
         private static readonly Regex fieldMatchRegex = new Regex(@"(?<!\w)_(?!\w)");
 
 
-        protected override Delegate GetFunc() => new Func<string, string, bool>((r, p) => r.IsNullOrEmpty() || fieldMatchRegex.IsMatch(p.Replace(r, "_")));
+        protected override Delegate GetFunc() => new Func<string, string, bool>((r, p) =>
+            (r.IsNullOrEmpty() && p == "_") || p == r);
     }
     public class RbacEnforcer : Enforcer
     {
@@ -187,13 +188,10 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) 
         public async Task SetPermissionsAsync(string subId, params string[] permissions)
         {
             await this.DeletePermissionsForUserAsync(subId);
-            var queryPermissions = permissions.Where(x => x.StartsWith("query"));
-            var otherPermissions = permissions.Except(queryPermissions).ToArray();
-            permissions = otherPermissions.Concat(queryPermissions.GroupBy(x => string.Join("_", x.Split('_').Take(2)), x => x).Select(x => x.Key + "_" + string.Join("|", x.Select(y => y.Split('_').Last())))).ToArray();
             foreach (var permission in permissions)
             {
                 await this.AddPermissionForUserAsync(subId,
-                permission.Split('_').Pad(3).Select(x => x ?? "").ToList());
+                permission.Split('_').Pad(3).Select(x => x ?? "_").ToList());
             }
             await ServiceLocator.Current.GetService<IMediator>().Publish(new PermissionChangedEvent(subId, permissions));
         }

@@ -30,7 +30,7 @@ namespace Geex.Common.Authorization.Handlers
         /// <returns>Response from the request</returns>
         public async Task<IEnumerable<string>> Handle(GetUserPermissionsRequest request, CancellationToken cancellationToken)
         {
-            return Enforcer.GetImplicitPermissionsForUser(request.UserId).Select(x => string.Join(".", x.Skip(1).ToArray()));
+            return Enforcer.GetImplicitPermissionsForUser(request.UserId).Select(x => string.Join("_", x.Skip(1).ToArray()).Trim('_'));
         }
     }
 }
