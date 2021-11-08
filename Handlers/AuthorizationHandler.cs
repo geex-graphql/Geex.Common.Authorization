@@ -11,7 +11,7 @@ using MediatR;
 
 namespace Geex.Common.Authorization.Handlers
 {
-    public class AuthorizationHandler : INotificationHandler<UserRoleChangedEvent>, IRequestHandler<GetUserPermissionsRequest, IEnumerable<string>>
+    public class AuthorizationHandler : INotificationHandler<UserRoleChangedEvent>, IRequestHandler<GetSubjectPermissionsRequest, IEnumerable<string>>
     {
         public AuthorizationHandler(RbacEnforcer enforcer)
         {
@@ -28,9 +28,9 @@ namespace Geex.Common.Authorization.Handlers
         /// <param name="request">The request</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Response from the request</returns>
-        public async Task<IEnumerable<string>> Handle(GetUserPermissionsRequest request, CancellationToken cancellationToken)
+        public async Task<IEnumerable<string>> Handle(GetSubjectPermissionsRequest request, CancellationToken cancellationToken)
         {
-            return Enforcer.GetImplicitPermissionsForUser(request.UserId).Select(x => string.Join("_", x.Skip(1).ToArray()).Trim('_'));
+            return Enforcer.GetImplicitPermissionsForUser(request.Subject).Select(x => string.Join("_", x.Skip(1).ToArray()).Trim('_'));
         }
     }
 }
