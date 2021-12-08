@@ -59,10 +59,10 @@ namespace Geex.Common.Authorization.Casbin
         /// </summary>
         public static Model Model { get; } = Model.CreateDefaultFromText(@"
 [request_definition]
-r = sub, obj, act, fields
+r = sub, mod, obj, act, fields
 
 [policy_definition]
-p = sub, obj, act, fields
+p = sub, mod, obj, act, fields
 
 [role_definition]
 g = _, _
@@ -72,7 +72,7 @@ g2 = _, _
 e = some(where (p.eft == allow))
 
 [matchers]
-m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) && (r.act == p.act) && fieldMatch(r.fields, p.fields)
+m = (p.sub == ""*"" || g(r.sub, p.sub)) && (r.mod == p.mod) && (p.obj == ""*"" || g2(r.obj, p.obj)) && (r.act == p.act) && fieldMatch(r.fields, p.fields)
 ");
 
 
@@ -139,18 +139,18 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) 
             return policies.Select(x => new PolicyItem(x)).ToList();
         }
 
-        public bool Enforce(string sub, string obj, string act = "", string fields = "")
+        public bool Enforce(string sub, string mod, string act, string obj, string fields = "")
         {
             if (sub == "000000000000000000000001")
             {
                 return true;
             }
-            return base.Enforce(sub, obj, act, fields);
+            return base.Enforce(sub, mod, act, obj, fields);
         }
 
-        public async Task<bool> EnforceAsync(string sub, string obj, string act = "", string fields = "")
+        public async Task<bool> EnforceAsync(string sub, string mod, string act, string obj, string fields = "")
         {
-            return this.Enforce(sub, obj, act, fields);
+            return this.Enforce(sub, mod, act, obj, fields);
         }
 
         public bool DeleteResourceGroupPolicy(string resourceOrGroupName)
@@ -191,7 +191,7 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (p.obj == ""*"" || g2(r.obj, p.obj)) 
             foreach (var permission in permissions)
             {
                 await this.AddPermissionForUserAsync(subId,
-                permission.Split('_').Pad(3).Select(x => x ?? "_").ToList());
+                permission.Split('_').Pad(4).Select(x => x ?? "_").ToList());
             }
             await ServiceLocator.Current.GetService<IMediator>().Publish(new PermissionChangedEvent(subId, permissions));
         }
