@@ -2,7 +2,7 @@
 using Geex.Common.Authorization.Casbin;
 
 using Microsoft.AspNetCore.Builder;
-
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using MongoDB.Entities;
 using MongoDB.Entities.Interceptors;
@@ -21,6 +21,7 @@ namespace Geex.Common.Authorization
         {
             var services = context.Services;
             services.AddCasbinAuthorization();
+            SchemaBuilder.AddAuthorization();
             base.ConfigureServices(context);
         }
 
