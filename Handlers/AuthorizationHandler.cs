@@ -5,13 +5,15 @@ using System.Threading.Tasks;
 
 using Geex.Common.Abstraction;
 using Geex.Common.Authorization.Casbin;
+using Geex.Common.Identity.Api.Aggregates.Orgs.Events;
 using Geex.Common.Identity.Api.Aggregates.Users.Events;
 
 using MediatR;
 
 namespace Geex.Common.Authorization.Handlers
 {
-    public class AuthorizationHandler : INotificationHandler<UserRoleChangedEvent>, IRequestHandler<GetSubjectPermissionsRequest, IEnumerable<string>>
+    public class AuthorizationHandler : INotificationHandler<UserRoleChangedEvent>,
+        IRequestHandler<GetSubjectPermissionsRequest, IEnumerable<string>>
     {
         public AuthorizationHandler(RbacEnforcer enforcer)
         {
