@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+
 using MongoDB.Entities;
+
 using NetCasbin;
+using NetCasbin.Abstractions;
 
 namespace Geex.Common.Authorization.Casbin
 {
@@ -14,6 +17,7 @@ namespace Geex.Common.Authorization.Casbin
             // policy names (instead of using the default policy provider)
             services.AddSingleton(x => new CasbinMongoAdapter(() => DB.Collection<CasbinRule>()));
             services.AddSingleton<RbacEnforcer>();
+            services.AddSingleton<IEnforcer, RbacEnforcer>();
             services.AddAuthorization();
             services.AddSingleton<IAuthorizationPolicyProvider, CasbinAuthorizationPolicyProvider>();
 

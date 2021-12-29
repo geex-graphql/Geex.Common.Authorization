@@ -14,6 +14,7 @@ namespace Geex.Common.Authorization.Casbin
 {
     public class CasbinMongoAdapter : IAdapter
     {
+        private IMongoCollection<CasbinRule> repository;
         public Func<IMongoCollection<CasbinRule>> RuleCollection { get; }
 
         public CasbinMongoAdapter(Func<IMongoCollection<CasbinRule>> ruleCollection)
@@ -23,7 +24,7 @@ namespace Geex.Common.Authorization.Casbin
 
         public void LoadPolicy(Model model)
         {
-            var repository = RuleCollection.Invoke();
+            this.repository = RuleCollection.Invoke();
             var list = repository.AsQueryable().ToList();
             LoadPolicyData(model, Helper.LoadPolicyLine, list);
         }
@@ -65,8 +66,8 @@ namespace Geex.Common.Authorization.Casbin
                  || (fieldIndex <= 3 && 3 < fieldIndex + num && x.V3 == line.V3)
                  || (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4))
                 && x.PType == ptype).ToList();
-            await casbinRules
-                .DeleteAsync();
+            var ruleIds = casbinRules.Select(x => x.Id);
+            await repository.DeleteManyAsync(x =>ruleIds.Contains(x.Id));
         }
 
         public async Task SavePolicyAsync(Model model)

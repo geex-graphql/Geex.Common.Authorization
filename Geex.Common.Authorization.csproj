@@ -11,4 +11,8 @@
     <ProjectReference Include="..\Geex.Common.Settings\Geex.Common.Settings.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="temp\" />
+  </ItemGroup>
+
 </Project>
