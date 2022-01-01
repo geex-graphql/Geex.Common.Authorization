@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Geex.Common.Abstraction;
+using Geex.Common.Abstraction.Authorization;
 using Geex.Common.Abstractions;
 using Geex.Common.Authorization.Events;
 
@@ -34,7 +35,7 @@ namespace Geex.Common.Authorization.Casbin
         protected override Delegate GetFunc() => new Func<string, string, bool>((r, p) =>
             (r.IsNullOrEmpty() && p == "_") || p == r);
     }
-    public class RbacEnforcer : Enforcer
+    public class RbacEnforcer : Enforcer, IRbacEnforcer
     {
         public RbacEnforcer(CasbinMongoAdapter adapter) : base(Model, adapter)
         {
@@ -156,24 +157,6 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (r.mod == p.mod) && (p.obj == ""*"" |
         public bool DeleteResourceGroupPolicy(string resourceOrGroupName)
         {
             return this.RemoveFilteredNamedGroupingPolicy("g2", 0, resourceOrGroupName);
-        }
-
-        public class GroupPolicy
-        {
-            public GroupPolicy(List<string> x)
-            {
-                this.Sub = x[0];
-                this.Group = x[1];
-            }
-
-            public GroupPolicy(string sub, string group)
-            {
-                Sub = sub;
-                Group = group;
-            }
-
-            public string Sub { get; }
-            public string Group { get; }
         }
 
         public async Task SetRolesForUser(string userId, List<string> roles)
