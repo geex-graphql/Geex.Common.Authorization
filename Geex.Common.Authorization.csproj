@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Geex.Common.Abstraction\Geex.Common.Abstraction.csproj" />
+    <ProjectReference Include="..\Geex.Common.Authentication\Geex.Common.Authentication.csproj" />
     <ProjectReference Include="..\Geex.Common.Identity\Geex.Common.Identity.csproj" />
     <ProjectReference Include="..\Geex.Common.Settings\Geex.Common.Settings.csproj" />
   </ItemGroup>
