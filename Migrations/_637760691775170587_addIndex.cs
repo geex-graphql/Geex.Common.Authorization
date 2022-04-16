@@ -11,10 +11,10 @@ using MongoDB.Entities;
 
 namespace Geex.Common.Authorization.Migrations
 {
-    public class _637760691775170587_addIndex : IMigration
+    public class _637760691775170587_addIndex : DbMigration
     {
         /// <inheritdoc />
-        public async Task UpgradeAsync(DbContext dbContext)
+        public override async Task UpgradeAsync(DbContext dbContext)
         {
             await dbContext.Collection<CasbinRule>().Indexes.CreateManyAsync(new[]
             {

@@ -1,4 +1,5 @@
-﻿using Geex.Common.Abstractions;
+﻿using System.Threading.Tasks;
+using Geex.Common.Abstractions;
 using Geex.Common.Authentication;
 using Geex.Common.Authorization.Casbin;
 
@@ -28,11 +29,11 @@ namespace Geex.Common.Authorization
             base.ConfigureServices(context);
         }
 
-        public override void OnApplicationInitialization(ApplicationInitializationContext context)
+        public override Task OnPreApplicationInitializationAsync(ApplicationInitializationContext context)
         {
             var app = context.GetApplicationBuilder();
             app.UseAuthorization();
-            base.OnApplicationInitialization(context);
+            return base.OnPreApplicationInitializationAsync(context);
         }
     }
 }

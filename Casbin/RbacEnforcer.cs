@@ -37,10 +37,13 @@ namespace Geex.Common.Authorization.Casbin
     }
     public class RbacEnforcer : Enforcer, IRbacEnforcer
     {
-        public RbacEnforcer(CasbinMongoAdapter adapter) : base(Model, adapter)
+        private readonly IMediator _mediator;
+
+        public RbacEnforcer(CasbinMongoAdapter adapter, IMediator mediator) : base(Model, adapter)
         {
             this.autoSave = true;
             this.AddFunction("fieldMatch", new FieldsSelectFunc());
+            this._mediator = mediator;
         }
         /// <summary>
         /// # defines
@@ -176,7 +179,7 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (r.mod == p.mod) && (p.obj == ""*"" |
                 await this.AddPermissionForUserAsync(subId,
                 permission.Split('_').Pad(4).Select(x => x ?? "_").ToList());
             }
-            await ServiceLocator.Current.GetService<IMediator>().Publish(new PermissionChangedEvent(subId, permissions));
+            await _mediator.Publish(new PermissionChangedEvent(subId, permissions));
         }
     }
 }
