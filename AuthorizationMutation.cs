@@ -8,7 +8,7 @@ using HotChocolate;
 
 namespace Geex.Common.Authorization
 {
-    public class AuthorizationMutation : Mutation<AuthorizationMutation>
+    public class AuthorizationMutation : MutationExtension<AuthorizationMutation>
     {
         public async Task<bool> Authorize(
             [Service] RbacEnforcer enforcer,
