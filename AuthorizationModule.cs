@@ -25,14 +25,12 @@ namespace Geex.Common.Authorization
         {
             var services = context.Services;
             services.AddCasbinAuthorization();
-            SchemaBuilder.AddAuthorization();
             base.ConfigureServices(context);
         }
 
         public override Task OnPreApplicationInitializationAsync(ApplicationInitializationContext context)
         {
             var app = context.GetApplicationBuilder();
-            app.UseAuthorization();
             return base.OnPreApplicationInitializationAsync(context);
         }
     }

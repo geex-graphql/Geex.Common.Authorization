@@ -4,26 +4,29 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Geex.Common.Abstraction;
+using Geex.Common.Abstraction.Authorization;
+using Geex.Common.Abstraction.Events;
+using Geex.Common.Abstraction.MultiTenant;
 using Geex.Common.Authorization.Casbin;
-using Geex.Common.Identity.Api.Aggregates.Orgs.Events;
-using Geex.Common.Identity.Api.Aggregates.Users.Events;
 
 using MediatR;
 
 namespace Geex.Common.Authorization.Handlers
 {
-    public class AuthorizationHandler : INotificationHandler<UserRoleChangedEvent>,
+    public class AuthorizationHandler : IRequestHandler<UserRoleChangeRequest>,
         IRequestHandler<GetSubjectPermissionsRequest, IEnumerable<string>>
     {
-        public AuthorizationHandler(RbacEnforcer enforcer)
+
+        public AuthorizationHandler(IRbacEnforcer enforcer)
         {
             Enforcer = enforcer;
         }
 
-        public RbacEnforcer Enforcer { get; init; }
-        public async Task Handle(UserRoleChangedEvent notification, CancellationToken cancellationToken)
+        public IRbacEnforcer Enforcer { get; init; }
+        public async Task<Unit> Handle(UserRoleChangeRequest notification, CancellationToken cancellationToken)
         {
-            await Enforcer.SetRolesForUser(notification.UserId, notification.Roles);
+            await Enforcer.SetRoles(notification.UserId, notification.RoleIds);
+            return Unit.Value;
         }
 
         /// <summary>Handles a request</summary>
@@ -32,7 +35,7 @@ namespace Geex.Common.Authorization.Handlers
         /// <returns>Response from the request</returns>
         public async Task<IEnumerable<string>> Handle(GetSubjectPermissionsRequest request, CancellationToken cancellationToken)
         {
-            return Enforcer.GetImplicitPermissionsForUser(request.Subject).Select(x => string.Join("_", x.Skip(1).ToArray()).Trim('_'));
+            return Enforcer.GetImplicitPermissionsForUser(request.Subject);
         }
     }
 }

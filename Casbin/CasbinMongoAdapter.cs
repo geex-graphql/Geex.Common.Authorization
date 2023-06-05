@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Geex.Common.Abstraction.MultiTenant;
+
 using MongoDB.Driver;
 using MongoDB.Entities;
 
@@ -14,18 +16,17 @@ namespace Geex.Common.Authorization.Casbin
 {
     public class CasbinMongoAdapter : IAdapter
     {
-        private IMongoCollection<CasbinRule> repository;
-        public Func<IMongoCollection<CasbinRule>> RuleCollection { get; }
+        private readonly Func<IMongoCollection<CasbinRule>> _collectionFactory;
+        private IMongoCollection<CasbinRule> _collection => _collectionFactory();
 
-        public CasbinMongoAdapter(Func<IMongoCollection<CasbinRule>> ruleCollection)
+        public CasbinMongoAdapter(Func<IMongoCollection<CasbinRule>> collectionFactory)
         {
-            RuleCollection = ruleCollection;
+            _collectionFactory = collectionFactory;
         }
 
         public void LoadPolicy(Model model)
         {
-            this.repository = RuleCollection.Invoke();
-            var list = repository.AsQueryable().ToList();
+            var list = _collection.AsQueryable().ToList();
             LoadPolicyData(model, Helper.LoadPolicyLine, list);
         }
 
@@ -59,15 +60,13 @@ namespace Geex.Common.Authorization.Casbin
                 line.V4 = fieldValues[4 - fieldIndex];
             if (fieldIndex <= 5 && 5 < fieldIndex + num)
                 line.V5 = fieldValues[5 - fieldIndex];
-            var casbinRules = RuleCollection.Invoke().AsQueryable().Where(x =>
+            await _collection.DeleteManyAsync(x =>
                 ((fieldIndex <= 0 && 0 < fieldIndex + num && x.V0 == line.V0)
                  || (fieldIndex <= 1 && 1 < fieldIndex + num && x.V1 == line.V1)
                  || (fieldIndex <= 2 && 2 < fieldIndex + num && x.V2 == line.V2)
                  || (fieldIndex <= 3 && 3 < fieldIndex + num && x.V3 == line.V3)
                  || (fieldIndex <= 4 && 4 < fieldIndex + num && x.V4 == line.V4))
-                && x.PType == ptype).ToList();
-            var ruleIds = casbinRules.Select(x => x.Id);
-            await repository.DeleteManyAsync(x =>ruleIds.Contains(x.Id));
+                && x.PType == ptype);
         }
 
         public async Task SavePolicyAsync(Model model)
@@ -80,7 +79,7 @@ namespace Geex.Common.Authorization.Casbin
                     var key = keyValuePair.Key;
                     foreach (var stringList in keyValuePair.Value.Policy)
                     {
-                        var casbinRule = savePolicyLine(key, stringList);
+                        var casbinRule = await buildPolicyLine(key, stringList);
                         source.Add(casbinRule);
                     }
                 }
@@ -92,17 +91,17 @@ namespace Geex.Common.Authorization.Casbin
                     var key = keyValuePair.Key;
                     foreach (var stringList in keyValuePair.Value.Policy)
                     {
-                        var casbinRule = savePolicyLine(key, stringList);
+                        var casbinRule = await buildPolicyLine(key, stringList);
                         source.Add(casbinRule);
                     }
                 }
             }
-            if (!source.Any())
-                return;
-            foreach (var x in source)
+
+            if (source.Any())
             {
-                await x.ToDocument().SaveAsync();
+                await _collection.InsertManyAsync(source);
             }
+
         }
 
         public void AddPolicy(string sec, string ptype, IList<string> rule)
@@ -166,7 +165,12 @@ namespace Geex.Common.Authorization.Casbin
 
         public async Task AddPolicyAsync(string pType, IList<string> rule)
         {
-            await savePolicyLine(pType, rule).ToDocument().SaveAsync();
+            var casbinRule = await buildPolicyLine(pType, rule);
+            if (casbinRule != default)
+            {
+                await _collection.InsertOneAsync(casbinRule);
+            }
+
         }
 
         private void LoadPolicyData(
@@ -175,10 +179,10 @@ namespace Geex.Common.Authorization.Casbin
             IEnumerable<CasbinRule> rules)
         {
             foreach (var rule in rules)
-                handler(GetPolicyCotent(rule), model);
+                handler(GetPolicyContent(rule), model);
         }
 
-        private string GetPolicyCotent(CasbinRule rule)
+        private string GetPolicyContent(CasbinRule rule)
         {
             var sb = new StringBuilder(rule.PType);
             Append(rule.V0);
@@ -197,9 +201,12 @@ namespace Geex.Common.Authorization.Casbin
             }
         }
 
-        private CasbinRule savePolicyLine(string pType, IList<string> rule)
+        private async Task<CasbinRule> buildPolicyLine(string pType, IList<string> rule)
         {
-            var casbinRule = new CasbinRule();
+            var casbinRule = new CasbinRule()
+            {
+                CreatedOn = DateTimeOffset.Now
+            };
             casbinRule.PType = pType;
             if (rule.Count() > 0)
                 casbinRule.V0 = rule[0];

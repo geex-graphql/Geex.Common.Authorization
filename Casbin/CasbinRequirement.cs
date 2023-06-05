@@ -8,7 +8,7 @@ namespace Geex.Common.Authorization.Casbin
     {
         public string Obj { get; }
         public string Act { get; }
-        public string Fields { get; set; }
+        public string Field { get; set; }
 
         public CasbinRequirement(string policyName)
         {
@@ -16,7 +16,7 @@ namespace Geex.Common.Authorization.Casbin
             this.Mod = split[0];
             this.Act = split[1];
             this.Obj = split[2];
-            this.Fields = split.ElementAtOrDefault(3) ?? "";
+            this.Field = split.ElementAtOrDefault(3) ?? "";
         }
 
         public string Mod { get; set; }

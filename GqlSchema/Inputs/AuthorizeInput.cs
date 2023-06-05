@@ -10,7 +10,7 @@ namespace Geex.Common.Authorization.GqlSchema.Inputs
         public List<AppPermission> AllowedPermissions { get; set; }
         /// <summary>
         /// 授权目标:
-        /// 用户: id, 角色: name
+        /// 用户or角色id
         /// </summary>
         public string Target { get; set; }
     }

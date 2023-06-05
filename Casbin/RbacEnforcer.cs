@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -11,7 +12,9 @@ using Geex.Common.Authorization.Events;
 
 using MediatR;
 
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using MoreLinq;
 
@@ -35,15 +38,17 @@ namespace Geex.Common.Authorization.Casbin
         protected override Delegate GetFunc() => new Func<string, string, bool>((r, p) =>
             (r.IsNullOrEmpty() && p == "_") || p == r);
     }
-    public class RbacEnforcer : Enforcer, IRbacEnforcer
+    public class RbacEnforcer : IRbacEnforcer
     {
-        private readonly IMediator _mediator;
+        private readonly ILogger<RbacEnforcer> _logger;
+        private readonly Enforcer _innerEnforcer;
 
-        public RbacEnforcer(CasbinMongoAdapter adapter, IMediator mediator) : base(Model, adapter)
+        public RbacEnforcer(CasbinMongoAdapter adapter, ILogger<RbacEnforcer> logger)
         {
-            this.autoSave = true;
-            this.AddFunction("fieldMatch", new FieldsSelectFunc());
-            this._mediator = mediator;
+            _logger = logger;
+            this._innerEnforcer = new Enforcer(Model, adapter);
+            _innerEnforcer.EnableAutoSave(true);
+            _innerEnforcer.AddFunction("fieldMatch", new FieldsSelectFunc());
         }
         /// <summary>
         /// # defines
@@ -61,7 +66,7 @@ namespace Geex.Common.Authorization.Casbin
         /// user.1, data.2, read : false
         /// user.1, data.2, write : true
         /// </summary>
-        public static Model Model { get; } = Model.CreateDefaultFromText(@"
+        public Model Model { get; } = Model.CreateDefaultFromText(@"
 [request_definition]
 r = sub, mod, obj, act, fields
 
@@ -79,77 +84,13 @@ e = some(where (p.eft == allow))
 m = (p.sub == ""*"" || g(r.sub, p.sub)) && (r.mod == p.mod) && (p.obj == ""*"" || g2(r.obj, p.obj)) && (r.act == p.act) && fieldMatch(r.fields, p.fields)
 ");
 
-
-
-        public bool AddUserGroupPolicy(string sub, string sub_group)
-        {
-            return this.AddNamedGroupingPolicy("g", sub, sub_group);
-        }
-
-        public bool SetUserGroupPolicy(string sub, IEnumerable<string> sub_groups)
-        {
-            var result = true;
-            this.RemoveNamedGroupingPolicy("g", sub);
-            foreach (var sub_group in sub_groups)
-            {
-                result = result && this.AddNamedGroupingPolicy("g", sub, sub_group);
-            }
-            return result;
-        }
-
-
-        public List<GroupPolicy> GetUserGroupPolicies(string sub)
-        {
-            return this.GetFilteredNamedGroupingPolicy("g", 0, sub).Select(x => new GroupPolicy(x)).ToList();
-        }
-
-        public bool AddResourceGroupPolicy(string resourceId, string groupId)
-        {
-            return this.AddNamedGroupingPolicy("g2", $"{resourceId}", $"{groupId}");
-        }
-
-        public bool SetFeaturePolicy(string sub, string[] objs)
-        {
-            var result = true;
-            this.RemoveFilteredNamedPolicy("p", 0, sub);
-            foreach (var obj in objs)
-            {
-                result = result && this.AddNamedPolicy("p", sub, obj, "*", "*");
-            }
-            return result;
-        }
-
-        public bool SetResourcePolicy(string sub, string obj, string[] acts, string fields = "*")
-        {
-            var result = true;
-            this.RemoveNamedPolicy("p", sub, obj);
-            foreach (var act in acts)
-            {
-                result = result && this.AddNamedPolicy("p", sub, obj, act, fields);
-            }
-
-            return result;
-        }
-
-        public List<PolicyItem> GetFeaturePolicies(string sub)
-        {
-            var policies = this.GetFilteredNamedPolicy("p", 1, sub);
-            return policies.Select(x => new PolicyItem(x)).ToList();
-        }
-
-        public List<PolicyItem> GetResourcePolicy(string sub, string obj)
-        {
-            var policies = this.GetFilteredNamedPolicy("p", 2, sub, obj);
-            return policies.Select(x => new PolicyItem(x)).ToList();
-        }
-
         public bool Enforce(string sub, string mod, string act, string obj, string fields = "")
         {
             if (sub == "000000000000000000000001")
             {
                 return true;
             }
-            return base.Enforce(sub, mod, act, obj, fields);
+            return this._innerEnforcer.Enforce(sub, mod, act, obj, fields);
         }
 
         public async Task<bool> EnforceAsync(string sub, string mod, string act, string obj, string fields = "")
@@ -157,29 +98,71 @@ m = (p.sub == ""*"" || g(r.sub, p.sub)) && (r.mod == p.mod) && (p.obj == ""*"" |
             return this.Enforce(sub, mod, act, obj, fields);
         }
 
-        public bool DeleteResourceGroupPolicy(string resourceOrGroupName)
+        /// <inheritdoc />
+        public async Task<bool> EnforceAsync(string sub, AppPermission permission)
         {
-            return this.RemoveFilteredNamedGroupingPolicy("g2", 0, resourceOrGroupName);
+            return await this.EnforceAsync(sub, permission.Mod, permission.Act, permission.Obj, permission.Field);
         }
 
-        public async Task SetRolesForUser(string userId, List<string> roles)
+        /// <inheritdoc />
+        public bool Enforce(string sub, AppPermission permission)
         {
-            await this.DeleteRolesForUserAsync(userId);
+            return this.Enforce(sub, permission.Mod, permission.Act, permission.Obj, permission.Field);
+        }
+
+        public async Task SetRoles(string sub, List<string> roles)
+        {
+            await this._innerEnforcer.DeleteRolesForUserAsync(sub);
+            //await _innerEnforcer.SavePolicyAsync();
             foreach (var newRole in roles)
             {
-                await this.AddRoleForUserAsync(userId, newRole);
+                await this._innerEnforcer.AddRoleForUserAsync(sub, newRole);
             }
         }
 
-        public async Task SetPermissionsAsync(string subId, params string[] permissions)
+        public async Task SetPermissionsAsync(string sub, IEnumerable<string> permissions)
         {
-            await this.DeletePermissionsForUserAsync(subId);
+            await this._innerEnforcer.DeletePermissionsForUserAsync(sub);
+            //await _innerEnforcer.SavePolicyAsync();
             foreach (var permission in permissions)
             {
-                await this.AddPermissionForUserAsync(subId,
+                await this._innerEnforcer.AddPermissionForUserAsync(sub,
                 permission.Split('_').Pad(4).Select(x => x ?? "_").ToList());
             }
-            await _mediator.Publish(new PermissionChangedEvent(subId, permissions));
+        }
+
+        /// <inheritdoc />
+        public async Task<bool> AddRolesForUserAsync(string sub, IEnumerable<string> role)
+        {
+            return await this._innerEnforcer.AddRolesForUserAsync(sub, role);
+        }
+
+        /// <inheritdoc />
+        public List<string> GetImplicitPermissionsForUser(string sub)
+        {
+            var roles = this.GetImplicitRolesForUser(sub);
+            var subs = roles.Concat(new[] { sub });
+            _logger.LogInformation(nameof(GetImplicitPermissionsForUser) + "subs:" + subs.ToJsonSafe());
+            var permissions = subs.SelectMany(x => this._innerEnforcer.GetPermissionsForUser(x).Select(y => string.Join("_", y.Skip(1).ToArray()).Trim('_'))).Distinct().ToList();
+            return permissions;
+        }
+
+        /// <inheritdoc />
+        public List<string> GetRolesForUser(string sub)
+        {
+            return this._innerEnforcer.GetRolesForUser(sub);
+        }
+
+        /// <inheritdoc />
+        public List<string> GetUsersForRole(string sub)
+        {
+            return this._innerEnforcer.GetRolesForUser(sub);
+        }
+
+        /// <inheritdoc />
+        public List<string> GetImplicitRolesForUser(string sub)
+        {
+            return this._innerEnforcer.GetImplicitRolesForUser(sub);
         }
     }
 }

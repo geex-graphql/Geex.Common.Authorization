@@ -23,7 +23,7 @@ namespace Geex.Common.Authorization.Casbin
             return new AuthorizationPolicy(new[]
             {
                 new CasbinRequirement(policyName)
-            }, new[] { JwtBearerDefaults.AuthenticationScheme });
+            }, new[] { JwtBearerDefaults.AuthenticationScheme, "SuperAdmin", "AuthenticationTypes.Federation" });
         }
     }
 }

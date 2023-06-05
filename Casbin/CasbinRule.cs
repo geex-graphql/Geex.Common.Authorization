@@ -1,8 +1,9 @@
-﻿using MongoDB.Entities;
+﻿using Geex.Common.Abstraction.MultiTenant;
+using MongoDB.Entities;
 
 namespace Geex.Common.Authorization.Casbin
 {
-    public class CasbinRule : Entity
+    public class CasbinRule : EntityBase<CasbinRule>
     {
         public string PType { get; set; }
         public string V0 { get; set; }
